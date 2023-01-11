@@ -10,7 +10,7 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-AudiosenderAudioProcessorEditor::AudiosenderAudioProcessorEditor (AudiosenderAudioProcessor& p)
+SenderAudioProcessorEditor::SenderAudioProcessorEditor (SenderAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
     // Make sure that before the constructor has finished, you've set the
@@ -18,12 +18,12 @@ AudiosenderAudioProcessorEditor::AudiosenderAudioProcessorEditor (AudiosenderAud
     setSize (400, 300);
 }
 
-AudiosenderAudioProcessorEditor::~AudiosenderAudioProcessorEditor()
+SenderAudioProcessorEditor::~SenderAudioProcessorEditor()
 {
 }
 
 //==============================================================================
-void AudiosenderAudioProcessorEditor::paint (juce::Graphics& g)
+void SenderAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
@@ -33,7 +33,7 @@ void AudiosenderAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);
 }
 
-void AudiosenderAudioProcessorEditor::resized()
+void SenderAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..

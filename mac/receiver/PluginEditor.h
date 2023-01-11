@@ -14,24 +14,20 @@
 //==============================================================================
 /**
 */
-class AudioreceiverAudioProcessorEditor  : public juce::AudioProcessorEditor
+class ReceiverAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
-    AudioreceiverAudioProcessorEditor (AudioreceiverAudioProcessor&);
-    ~AudioreceiverAudioProcessorEditor() override;
+    ReceiverAudioProcessorEditor (ReceiverAudioProcessor&);
+    ~ReceiverAudioProcessorEditor() override;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
-    
-    void buttonHandler();
 
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    AudioreceiverAudioProcessor& audioProcessor;
-    
-    juce::TextButton button;
+    ReceiverAudioProcessor& audioProcessor;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioreceiverAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReceiverAudioProcessorEditor)
 };

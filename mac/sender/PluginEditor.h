@@ -7,28 +7,27 @@
 */
 
 #pragma once
+
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
 //==============================================================================
 /**
 */
-class AudiosenderAudioProcessorEditor  : public juce::AudioProcessorEditor
+class SenderAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
-    AudiosenderAudioProcessorEditor (AudiosenderAudioProcessor&);
-    ~AudiosenderAudioProcessorEditor() override;
+    SenderAudioProcessorEditor (SenderAudioProcessor&);
+    ~SenderAudioProcessorEditor() override;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
-    
-    
 
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    AudiosenderAudioProcessor& audioProcessor;
+    SenderAudioProcessor& audioProcessor;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudiosenderAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SenderAudioProcessorEditor)
 };

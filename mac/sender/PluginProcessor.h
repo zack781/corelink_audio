@@ -1,3 +1,5 @@
+
+
 /*
   ==============================================================================
 
@@ -8,23 +10,22 @@
 
 #pragma once
 
-#pragma comment (dylib, "libssl")
-#pragma comment (dylib, "libcrypto")
-
-//#define CORELINK_USE_WEBSOCKET                         // Enable usage of websockets
-
-#define CORELINK_USE_CONCURRENT_COUNTER                // Enable usage of concurrent counter class
-#define CORELINK_USE_CONCURRENT_QUEUE                  // Enable usage of concurrent queue class
-#define CORELINK_USE_CONCURRENT_MAP                    // Enable usage of concurrent map class
+#define CORELINK_USE_WEBSOCKET
+#define CORELINK_USE_CONCURRENT_COUNTER
+#define CORELINK_USE_CONCURRENT_QUEUE
+#define CORELINK_USE_CONCURRENT_MAP
 #define CORELINK_ENABLE_STRING_UTIL_FUNCTIONS
 
+#define CONNECT_TO_LOCAL
 
-#include "corelink_all.hpp"
-
-#include <iostream>
-#include <future>
+#ifdef CONNECT_TO_LOCAL
+#define CORELINK_WEBSOCKET_CONNECT_LOCAL_SERVER
+#endif
 
 #include <JuceHeader.h>
+#include "corelink_all.hpp"
+#include <iostream>
+#include <future>
 
 namespace ns_cl_client = corelink::client;
 namespace ns_cl_core = corelink::core;
@@ -35,15 +36,15 @@ template<typename t> using out = corelink::out<t>;
 //==============================================================================
 /**
 */
-class AudiosenderAudioProcessor  : public juce::AudioProcessor
+class SenderAudioProcessor  : public juce::AudioProcessor
                             #if JucePlugin_Enable_ARA
                              , public juce::AudioProcessorARAExtension
                             #endif
 {
 public:
     //==============================================================================
-    AudiosenderAudioProcessor();
-    ~AudiosenderAudioProcessor() override;
+    SenderAudioProcessor();
+    ~SenderAudioProcessor() override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -90,7 +91,7 @@ public:
 
 private:
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudiosenderAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SenderAudioProcessor)
     
     corelink::client::corelink_classic_client client;
     corelink::client::corelink_client_connection_info info;
@@ -99,8 +100,7 @@ private:
     std::vector<float> floatBuffer;
     corelink::utils::json meta;
     int bufferSize;
-    double sampleRate_;
-    
+    float sampleRate;
     
     std::string cert_path;
     
@@ -108,6 +108,5 @@ private:
     bool loading;
     
     corelink::core::network::channel_id_type hostId;
-    
     
 };

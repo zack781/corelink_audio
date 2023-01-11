@@ -8,20 +8,30 @@
 
 #pragma once
 
-#pragma comment (dylib, "libwebsockets")
-#pragma comment (dylib, "libssl")
-#pragma comment (dylib, "libcrypto")
-
-
+//#define CORELINK_USE_WEBSOCKET
 #define CORELINK_USE_CONCURRENT_QUEUE
-#include "corelink_all.hpp"
+#define CORELINK_ENABLE_STRING_UTIL_FUNCTIONS
 
-#include <iostream>
-#include <future>
-#include <mutex>
-#include <pthread.h>
+#define CONNECT_TO_LOCAL
+
+#ifdef CONNECT_TO_LOCAL
+#define CORELINK_WEBSOCKET_CONNECT_LOCAL_SERVER
+#endif
 
 #include <JuceHeader.h>
+#include "corelink_all.hpp"
+#include <iostream>
+#include <future>
+//#include <atomic>
+#include <queue>
+#include "tbb.h"
+//#include "queue.cpp"
+#include "ThreadsafeQueue.h"
+#include "fifo.hpp"
+
+//#include "AsyncCaller.hpp"
+#include <functional>
+#include "AsyncCaller_juce.h"
 
 namespace ns_cl_client = corelink::client;
 namespace ns_cl_core = corelink::core;
@@ -29,18 +39,19 @@ namespace ns_cl_req_resp = ns_cl_client::request_response;
 template<typename t> using in = corelink::in<t>;
 template<typename t> using out = corelink::out<t>;
 
+
 //==============================================================================
 /**
 */
-class AudioreceiverAudioProcessor  : public juce::AudioProcessor
+class ReceiverAudioProcessor  : public juce::AudioProcessor
                             #if JucePlugin_Enable_ARA
                              , public juce::AudioProcessorARAExtension
                             #endif
 {
 public:
     //==============================================================================
-    AudioreceiverAudioProcessor();
-    ~AudioreceiverAudioProcessor() override;
+    ReceiverAudioProcessor();
+    ~ReceiverAudioProcessor() override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -84,53 +95,103 @@ public:
     void create_receiver(ns_cl_core::network::channel_id_type control_channel_id,
                          out<corelink::client::corelink_classic_client> client);
     
-//    void process_packet(in<std::vector<float>> data, std::queue<std::vector<float>*>* bufferQueue, int bufferSize);
-    
-    //void buffer_processing(std::vector<uint8_t>& data, int bufferSize);
-    void buffer_processing(std::vector<uint8_t>* data, int bufferSize);
+    void buffer_processing(std::vector<uint8_t> data, int bufferSize);
         
     template<class T>
     void swapMove(T& a, T& b);
     
-    bool isMuted()const;
-    void setMute(bool val);
+    void queuing(tbb::detail::d1::concurrent_vector<float>*& tbbVector, ThreadsafeQueue<float>*& tsQueue, std::atomic<int>& write_pos, int bufferSize_, std::atomic<bool>& loading, std::atomic<bool>& receiverInit);
     
-    
+    void asyncCallerProcessing(AsyncCaller<farbot::fifo_options::concurrency::single>& update_queue, ThreadsafeQueue<std::vector<uint8_t>>*& dataQueue, ThreadsafeQueue<float>*& tsQueue, int bufferSize_, std::mutex& bufferMutex, std::atomic<bool>& loading, std::atomic<bool>& receiverInit);
+
 private:
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioreceiverAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReceiverAudioProcessor)
     
     corelink::client::corelink_classic_client client;
-    corelink::client::corelink_client_connection_info info;
+    std::string cert_path = "/Users/zack/Documents/repos/corelink-server/config/ca-crt.pem";
+    
+    corelink::client::corelink_client_connection_info info = ns_cl_client::corelink_client_connection_info(corelink::core::network::constants::protocols::tcp).set_certificate_path(cert_path);
+    
     corelink::core::network::channel_id_type control_channel_id;
+        
+    std::atomic<bool> done;
+    std::atomic<bool> loading;
+    std::atomic<bool> receiverInit = false;
+    std::atomic<int> bufferSize_;
     
-    std::string cert_path;
+    std::queue<std::vector<float>> slowQueue;
+    std::vector<float> tmpVector;
+   
+//    std::atomic<bool> to_write = false;
     
-    bool done;
-    bool loading;
+    //float sampleRate;
     
-    bool receiverInit = false;
+    ThreadsafeQueue<float>* tsQueue = new ThreadsafeQueue<float>();
+    ThreadsafeQueue<std::vector<uint8_t>>* dataQueue = new ThreadsafeQueue<std::vector<uint8_t>>();
     
-    int bufferSize_;
+    tbb::detail::d1::concurrent_vector<float>* tbbVector = new tbb::detail::d1::concurrent_vector<float>();
     
-    std::vector<float> buffer_;
-    std::queue<std::vector<float>*> bufferQueue;
+    farbot::fifo<float,
+                 farbot::fifo_options::concurrency::single,
+                 farbot::fifo_options::concurrency::single,
+                 farbot::fifo_options::full_empty_failure_mode::overwrite_or_return_default,
+                 farbot::fifo_options::full_empty_failure_mode::overwrite_or_return_default> my_fifo;
     
+    
+    AsyncCaller<farbot::fifo_options::concurrency::single> update_queue;
+    //tbb::detail::d2::concurrent_queue<float> cQueue;
     
     // Circular Buffer
-    std::vector<float> myBuffer;
-    int read_pos;
-    int write_pos;
+    std::atomic<int> read_pos;
+    std::atomic<int> write_pos;
     
-    std::mutex bufferMutext;
+//    std::vector<float> cBuffer;
     
-    std::vector<std::future<void>> m_Futures;
+    //ThreadsafeQueue* dataQueue = new ThreadsafeQueue();
+    //std::queue<std::vector<uint8_t>> dataQueue;
     
-    // -------------
+    std::mutex bufferMutex;
+    std::mutex writeMutex;
     
-    std::queue<juce::AudioBuffer<float>> juceBuffers;
+    float read_time = 0;
     
-    bool mute = false;
-    int multiplier = 1;
+    bool init = false;
+    
+    std::vector<uint8_t> v8;
+    
+    // ---------------
+    
+    // Double Buffering
+    
+    std::vector<float> buffer1;
+    std::vector<float> buffer2;
+    
+    bool write1;
+    bool write2;
+    
+    bool fill1;
+    bool fill2;
+    
+    // ----------------
+    
+    // Metrics
+    std::vector<float> elapsed;
+    int counter = 0;
+    
+    // -------
+    
+    // Queuing + 2-N Buffer
+    
+    std::queue<float> myQueue;
+    std::mutex queueMutex;
+    
+    std::vector<float> nBuffer;
+    
+    int write_flag = 0;
+    bool write = true;
+    //std::mutex writeMutex;
+    // --------------------
+    
     
 };
